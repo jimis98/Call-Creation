@@ -1,0 +1,57 @@
+function onOpen(e) {
+  var ui = SpreadsheetApp.getUi();
+  var menu = ui.createMenu('Call Creation');
+  var item = menu.addItem('Create Call', 'Calls'); 
+  item.addToUi();
+};
+
+function Calls() {
+  // get spreadsheet
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Call Creation'); // Ensure the sheet name is correct
+  var lr = sheet.getLastRow(); // Get the last row with data
+  
+  for (var i = 2; i <= lr; i++) { // Start from row 2, assuming row 1 contains headers
+    // Read data from the sheet
+    var title = sheet.getRange(i, 1).getValue();
+    var eventDesc = sheet.getRange(i, 2).getValue();
+    var eventLoca = sheet.getRange(i, 3).getValue(); // Optional location
+    var startDate = sheet.getRange(i, 4).getValue();
+    var endDate = sheet.getRange(i, 5).getValue();
+    var attendees = sheet.getRange(i, 6).getValue();
+    var link = sheet.getRange(1, 7).getValue();
+
+    // Skip rows where required fields are missing
+    if (!title || !startDate || !endDate) {
+      Logger.log(`Skipping row ${i}: Missing title, start date, or end date.`);
+      continue; // Skip to the next row
+    }
+
+    // Ensure attendees are properly formatted
+    if (attendees) {
+      attendees = attendees.split(',').map(email => email.trim()).join(',');
+    } else {
+      attendees = ''; // No attendees specified
+    }
+
+    // Access the target calendar
+    var masterCal = CalendarApp.getCalendarById(link);
+    //var masterCal = CalendarApp.getDefaultCalendar();
+    
+    try {
+      // Create the event in the calendar
+      masterCal.createEvent(title,
+                            new Date(startDate),
+                            new Date(endDate),
+                            {
+                              location: eventLoca || '', // Optional location
+                              description: eventDesc,
+                              guests: attendees,
+                              sendInvites: true // Send invitations to guests
+                            });
+      Logger.log(`Event created successfully for row ${i}`);
+    } catch (e) {
+      Logger.log(`Error creating event for row ${i}: ${e.message}`);
+    }
+  }
+}
